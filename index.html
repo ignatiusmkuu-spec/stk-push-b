@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gifted M-Pesa Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .container {
+    width: 100%;
+    max-width: 680px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  h1 { margin: 0 0 8px; font-size: 24px; color: #4ade80; }
+  h2 {
+    font-size: 14px;
+    color: #cbd5e1;
+    margin: 24px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+  .field { margin-bottom: 14px; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 6px;
+  }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: #4ade80; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  button {
+    padding: 12px 16px;
+    background: #16a34a;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  button:hover:not(:disabled) { background: #15803d; }
+  button:disabled { background: #475569; cursor: not-allowed; }
+  button.secondary { background: #334155; }
+  button.secondary:hover:not(:disabled) { background: #475569; }
+  button.warn { background: #b45309; }
+  button.warn:hover:not(:disabled) { background: #92400e; }
+  button.full { width: 100%; margin-top: 8px; padding: 14px; font-size: 16px; }
+  .log {
+    margin-top: 20px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    max-height: 340px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+  .log-line { margin: 2px 0; word-break: break-word; white-space: pre-wrap; }
+  .log-info    { color: #94a3b8; }
+  .log-success { color: #4ade80; }
+  .log-error   { color: #f87171; }
+  .log-warn    { color: #fbbf24; }
+  .log-head    { color: #60a5fa; font-weight: bold; }
+  .apps-list { margin-top: 12px; }
+  .app-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .app-card:hover { border-color: #4ade80; background: #111f36; }
+  .app-card .app-name { color: #4ade80; font-weight: 600; margin-bottom: 4px; }
+  .app-card .app-meta { color: #94a3b8; font-size: 11px; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>💳 Gifted M-Pesa Dashboard</h1>
+  <p class="subtitle">Apps management + KCB bank routing + STK Push</p>
+
+  <h2>Create Bank-Routed App</h2>
+  <div class="field">
+    <label for="newAppName">App Name</label>
+    <input id="newAppName" type="text" value="My Till App" />
+  </div>
+  <div class="row">
+    <div class="field">
+      <label for="newAppType">App Type</label>
+      <input id="newAppType" type="text" value="bank" />
+    </div>
+    <div class="field">
+      <label for="newAppBank">Bank Paybill</label>
+      <input id="newAppBank" type="text" value="522522" />
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label for="newAppAccount">Bank Account Number</label>
+      <input id="newAppAccount" type="text" value="1349239151" />
+    </div>
+    <div class="field">
+      <label for="newAppMin">Min Amount (KES)</label>
+      <input id="newAppMin" type="number" value="10" min="0" />
+    </div>
+  </div>
+  <button id="createAppBtn" class="warn full">Create App (POST)</button>
+
+  <h2>My Apps</h2>
+  <div class="field">
+    <label for="accountEmail">Account Email (x-account-email)</label>
+    <input id="accountEmail" type="email" value="ignatiusperez86@gmail.com" />
+  </div>
+  <button id="fetchAppsBtn" class="secondary full">Fetch My Apps</button>
+  <div class="apps-list" id="appsList"></div>
+
+  <h2>Update Selected App</h2>
+  <div class="field">
+    <label for="appId">App ID (auto-filled when you click a card)</label>
+    <input id="appId" type="text" placeholder="APP_ID" />
+  </div>
+  <div class="row">
+    <div class="field">
+      <label for="appName">Name</label>
+      <input id="appName" type="text" placeholder="Updated Name" />
+    </div>
+    <div class="field">
+      <label for="minAmount">Min Amount (KES)</label>
+      <input id="minAmount" type="number" placeholder="50" min="0" />
+    </div>
+  </div>
+  <button id="updateAppBtn" class="warn full">Update App (PUT)</button>
+
+  <h2>STK Push Payment</h2>
+  <div class="field">
+    <label for="phone">Phone Number</label>
+    <input id="phone" type="tel" placeholder="254706535581" value="254706535581" />
+  </div>
+  <div class="row">
+    <div class="field">
+      <label for="amount">Amount (KES)</label>
+      <input id="amount" type="number" placeholder="100" value="100" min="1" />
+    </div>
+    <div class="field">
+      <label for="reference">Reference</label>
+      <input id="reference" type="text" placeholder="INV-001" value="INV-001" />
+    </div>
+  </div>
+  <button id="payBtn" class="full">Send STK Push</button>
+
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+// ═════════════════════════════════════════════════════════════
+// CONFIG
+// ═════════════════════════════════════════════════════════════
+const API_BASE_URL = 'https://mpesa.gifted.co.ke';
+const API_KEY = 'gifted_mpesa_stk_D99LB9R8QALoLm_iE36o-xfBlRhWmH14';
+
+// ═════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═════════════════════════════════════════════════════════════
+const logEl = document.getElementById('log');
+const payBtn = document.getElementById('payBtn');
+const fetchAppsBtn = document.getElementById('fetchAppsBtn');
+const updateAppBtn = document.getElementById('updateAppBtn');
+const createAppBtn = document.getElementById('createAppBtn');
+const appsList = document.getElementById('appsList');
+
+const appIdInput = document.getElementById('appId');
+const appNameInput = document.getElementById('appName');
+const minAmountInput = document.getElementById('minAmount');
+
+function log(message, type = 'info') {
+  const line = document.createElement('div');
+  line.className = `log-line log-${type}`;
+  const time = new Date().toLocaleTimeString();
+  line.textContent = `[${time}] ${message}`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog() { logEl.innerHTML = ''; }
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ═════════════════════════════════════════════════════════════
+// AUTH HEADERS
+// ═════════════════════════════════════════════════════════════
+function buildHeaders(includeAccount = false) {
+  const headers = {
+    'Authorization': `Bearer ${API_KEY.trim()}`,
+    'Content-Type': 'application/json',
+  };
+  if (includeAccount) {
+    const email = document.getElementById('accountEmail').value.trim();
+    if (email) headers['x-account-email'] = email;
+  }
+  return headers;
+}
+
+// ═════════════════════════════════════════════════════════════
+// GENERIC REQUEST WRAPPER
+// ═════════════════════════════════════════════════════════════
+async function apiRequest(path, { method = 'GET', body, includeAccount = false, maxRetries = 3 } = {}) {
+  const cleanPath = path.replace(/\/{2,}/g, '/');
+  const url = `${API_BASE_URL}${cleanPath}`;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers: buildHeaders(includeAccount),
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    } catch (netErr) {
+      log(`🌐 Network error: ${netErr.message}`, 'error');
+      if (attempt < maxRetries) {
+        const wait = Math.min(15, Math.pow(2, attempt) * 2);
+        log(`   Retry in ${wait}s…`, 'warn');
+        await sleep(wait * 1000);
+        continue;
+      }
+      throw netErr;
+    }
+
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
+      log(`⏸ Rate limited. Retrying after ${retryAfter}s (attempt ${attempt + 1}/${maxRetries})`, 'warn');
+      if (attempt < maxRetries) { await sleep(retryAfter * 1000); continue; }
+      throw new Error(`Rate limited. Try again in ${retryAfter}s.`);
+    }
+
+    if ([502, 503, 522, 524].includes(response.status)) {
+      const wait = Math.min(30, Math.pow(2, attempt) * 2);
+      log(`🔁 Gateway ${response.status}. Retry in ${wait}s…`, 'warn');
+      if (attempt < maxRetries) { await sleep(wait * 1000); continue; }
+      throw new Error(`Gateway unavailable (HTTP ${response.status}).`);
+    }
+
+    let payload = null;
+    const text = await response.text();
+    if (text) {
+      try { payload = JSON.parse(text); } catch (_) { payload = { raw: text }; }
+    }
+
+    return { status: response.status, ok: response.ok, payload };
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// CREATE APP — bank-routed (KCB 522522 / account 1349239151)
+// ═════════════════════════════════════════════════════════════
+async function createApp() {
+  const name = document.getElementById('newAppName').value.trim();
+  const appType = document.getElementById('newAppType').value.trim();
+  const bank = document.getElementById('newAppBank').value.trim();
+  const account = document.getElementById('newAppAccount').value.trim();
+  const minAmount = Number(document.getElementById('newAppMin').value);
+
+  if (!name || !account) {
+    log('❌ App name and bank account number are required.', 'error');
+    return;
+  }
+
+  // Primary payload matching the Gifted docs
+  const primaryBody = {
+    name,
+    app_type: appType || 'bank',
+    account,
+    min_amount: minAmount || 10,
+  };
+
+  // Variant including bank paybill (in case the API expects it)
+  const variantBody = {
+    ...primaryBody,
+    bank_code: bank,
+    paybill: bank,
+  };
+
+  log(`🆕 Creating bank-routed app → ${JSON.stringify(primaryBody)}`, 'head');
+  log(`🏦 Destination: KCB Paybill ${bank} / account ${account}`, 'info');
+
+  const candidates = [
+    { path: '/api/apps',        method: 'POST', body: primaryBody },
+    { path: '/apps',            method: 'POST', body: primaryBody },
+    { path: '/api/apps/',       method: 'POST', body: primaryBody },
+    { path: '/api/v1/apps',     method: 'POST', body: primaryBody },
+    { path: '/api/v2/apps',     method: 'POST', body: primaryBody },
+    { path: '/api/apps/create', method: 'POST', body: primaryBody },
+    { path: '/api/app/create',  method: 'POST', body: primaryBody },
+    // Retry best guesses with the paybill variant
+    { path: '/api/apps',        method: 'POST', body: variantBody },
+    { path: '/apps',            method: 'POST', body: variantBody },
+  ];
+
+  let winner = null;
+  for (const c of candidates) {
+    try {
+      const res = await apiRequest(c.path, {
+        method: c.method,
+        body: c.body,
+        includeAccount: true,
+      });
+      const tag = res.ok ? 'success' : 'warn';
+      const extra = (c.body === variantBody) ? ' [paybill variant]' : '';
+      log(`  ${c.method} ${c.path}${extra} → ${res.status}`, tag);
+
+      if (res.ok) { winner = { ...c, res }; break; }
+
+      if (res.payload) {
+        const msg = res.payload.detail || res.payload.message;
+        if (msg) log(`    ↳ ${msg}`, 'warn');
+      }
+    } catch (e) {
+      log(`  ${c.method} ${c.path} → ERR ${e.message}`, 'error');
+    }
+  }
+
+  if (!winner) {
+    log('❌ No working create endpoint found (all returned 404/4xx).', 'warn');
+    log('💡 Open DevTools → Network tab on the Gifted dashboard, create an app via UI, copy the exact request.', 'info');
+    log('💡 Or contact Gifted support: "What endpoint creates a bank-routed app for KCB 522522 / acct 1349239151?"', 'info');
+    return;
+  }
+
+  log(`✅ App created via ${winner.method} ${winner.path}`, 'success');
+  log('Response: ' + JSON.stringify(winner.res.payload).slice(0, 400), 'success');
+
+  log('🔄 Refreshing apps list…', 'info');
+  await fetchApps();
+}
+
+// ═════════════════════════════════════════════════════════════
+// APPS LIST
+// ═════════════════════════════════════════════════════════════
+async function fetchApps() {
+  appsList.innerHTML = '';
+  clearLog();
+
+  const candidates = [
+    { path: '/apps',              method: 'GET' },
+    { path: '/api/apps',          method: 'GET' },
+    { path: '/api/apps/',         method: 'GET' },
+    { path: '/api/v1/apps',       method: 'GET' },
+    { path: '/api/v2/apps',       method: 'GET' },
+    { path: '/api/me/apps',       method: 'GET' },
+    { path: '/api/user/apps',     method: 'GET' },
+    { path: '/api/my-apps',       method: 'GET' },
+  ];
+
+  log('🔎 Probing for the correct apps endpoint…', 'head');
+
+  let winner = null;
+  for (const c of candidates) {
+    try {
+      const res = await apiRequest(c.path, { method: c.method, includeAccount: true });
+      log(`  ${c.method} ${c.path} → ${res.status}`, res.ok ? 'success' : 'warn');
+      if (res.ok) { winner = { ...c, res }; break; }
+    } catch (e) {
+      log(`  ${c.method} ${c.path} → ERR ${e.message}`, 'error');
+    }
+  }
+
+  if (!winner) {
+    log('❌ No working /apps variant found.', 'warn');
+    log('💡 Check DevTools Network tab on the Gifted dashboard for the exact URL.', 'info');
+    return;
+  }
+
+  log(`✅ Working list endpoint: ${winner.method} ${winner.path}`, 'success');
+
+  const data = winner.res.payload;
+  const apps = Array.isArray(data) ? data
+             : Array.isArray(data?.apps) ? data.apps
+             : Array.isArray(data?.data) ? data.data
+             : data?.data?.apps || [];
+
+  if (!apps.length) {
+    log('⚠️ Endpoint responded but no apps found (or unexpected shape).', 'warn');
+    log('Raw: ' + JSON.stringify(data).slice(0, 300), 'info');
+    return;
+  }
+
+  log(`📦 Found ${apps.length} app(s):`, 'success');
+  apps.forEach((app, i) => {
+    const card = document.createElement('div');
+    card.className = 'app-card';
+    const name = app.name || app.app_name || `App #${i + 1}`;
+    const id   = app.id || app.app_id || '';
+    const minAmt = app.min_amount ?? app.minAmount ?? '—';
+    const acct = app.account || app.bank_account || '—';
+    const type = app.app_type || app.type || '—';
+    card.innerHTML = `
+      <div class="app-name">${escapeHtml(name)}</div>
+      <div class="app-meta">ID: ${escapeHtml(String(id))}</div>
+      <div class="app-meta">Type: ${escapeHtml(String(type))} | Account: ${escapeHtml(String(acct))}</div>
+      <div class="app-meta">Min amount: ${escapeHtml(String(minAmt))}</div>
+    `;
+    if (id) {
+      card.addEventListener('click', () => {
+        appIdInput.value = id;
+        appNameInput.value = name;
+        if (minAmt !== '—') minAmountInput.value = minAmt;
+        log(`📌 Selected app: ${name} (${id})`, 'info');
+      });
+    }
+    appsList.appendChild(card);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+}
+
+// ═════════════════════════════════════════════════════════════
+// UPDATE APP
+// ═════════════════════════════════════════════════════════════
+async function updateApp() {
+  const appId = appIdInput.value.trim();
+  if (!appId) { log('❌ Enter or select an App ID first.', 'error'); return; }
+
+  const body = {};
+  const name = appNameInput.value.trim();
+  const minAmount = minAmountInput.value.trim();
+  if (name)      body.name = name;
+  if (minAmount) body.min_amount = Number(minAmount);
+
+  if (!Object.keys(body).length) {
+    log('❌ Fill at least one field to update.', 'error');
+    return;
+  }
+
+  log(`✏️ Updating app ${appId} → ${JSON.stringify(body)}`, 'head');
+
+  const candidates = [
+    { path: `/apps/${encodeURIComponent(appId)}`,      method: 'PUT'   },
+    { path: `/api/apps/${encodeURIComponent(appId)}`,  method: 'PUT'   },
+    { path: `/apps/${encodeURIComponent(appId)}`,      method: 'PATCH' },
+    { path: `/api/apps/${encodeURIComponent(appId)}`,  method: 'PATCH' },
+  ];
+
+  let winner = null;
+  for (const c of candidates) {
+    try {
+      const res = await apiRequest(c.path, { method: c.method, body, includeAccount: true });
+      log(`  ${c.method} ${c.path} → ${res.status}`, res.ok ? 'success' : 'warn');
+
+      if (res.ok) { winner = { ...c, res }; break; }
+
+      if (res.payload) {
+        const msg = res.payload.detail || res.payload.message;
+        if (msg) log(`    ↳ ${msg}`, 'warn');
+      }
+    } catch (e) {
+      log(`  ${c.method} ${c.path} → ERR ${e.message}`, 'error');
+    }
+  }
+
+  if (!winner) { log('❌ No working update endpoint found.', 'warn'); return; }
+
+  log(`✅ App updated via ${winner.method} ${winner.path}`, 'success');
+  log('Response: ' + JSON.stringify(winner.res.payload).slice(0, 300), 'success');
+
+  log('🔄 Refreshing apps list…', 'info');
+  await fetchApps();
+}
+
+// ═════════════════════════════════════════════════════════════
+// PHONE NORMALIZER
+// ═════════════════════════════════════════════════════════════
+function normalizePhone(phone) {
+  if (!phone) return null;
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.startsWith('254') && digits.length === 12) return digits;
+  if (digits.startsWith('0') && digits.length === 10) return '254' + digits.slice(1);
+  if (digits.startsWith('7') && digits.length === 9) return '254' + digits;
+  if (digits.startsWith('1') && digits.length === 9) return '254' + digits;
+  return null;
+}
+
+// ═════════════════════════════════════════════════════════════
+// STK PUSH FLOW
+// ═════════════════════════════════════════════════════════════
+async function initiatePayment({ phoneNumber, amount, accountReference, description }) {
+  const normalizedPhone = normalizePhone(phoneNumber);
+  if (!normalizedPhone) throw new Error('Invalid phone number. Use 2547XXXXXXXX or 07XXXXXXXX.');
+  if (!amount || amount < 1) throw new Error('Amount must be at least 1 KES.');
+
+  const payload = {
+    phone_number: normalizedPhone,
+    amount: Number(amount),
+    ...(accountReference && { account_reference: accountReference }),
+    ...(description && { transaction_desc: description }),
+  };
+
+  log(`📲 Sending STK push → ${normalizedPhone} for KES ${amount}`, 'info');
+
+  const res = await apiRequest('/api/payments/process', { method: 'POST', body: payload });
+
+  if (!res.ok) {
+    const msg = res.payload?.detail || res.payload?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  if (!res.payload?.success) {
+    throw new Error(res.payload?.message || 'Failed to initiate STK push');
+  }
+
+  return {
+    checkoutRequestId: res.payload.checkout_request_id,
+    merchantRequestId: res.payload.merchant_request_id,
+    message: res.payload.message,
+  };
+}
+
+async function pollTransactionStatus(checkoutRequestId, { intervalMs = 5000, maxAttempts = 24 } = {}) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let res;
+    try {
+      res = await apiRequest('/api/payments/verify', {
+        method: 'POST',
+        body: { checkoutRequestId },
+      });
+    } catch (err) {
+      log(`Poll error on attempt ${attempt}: ${err.message}`, 'error');
+      if (attempt === maxAttempts) return { status: 'error', error: err.message, data: null };
+      await sleep(intervalMs);
+      continue;
+    }
+
+    if (!res.ok) {
+      log(`Poll HTTP ${res.status}: ${res.payload?.detail || res.payload?.message || ''}`, 'error');
+      if (attempt === maxAttempts) return { status: 'error', data: null };
+      await sleep(intervalMs);
+      continue;
+    }
+
+    const { status, data } = res.payload;
+    log(`⏳ [${attempt}/${maxAttempts}] Status: ${status}`, 'info');
+
+    if (status === 'completed') return { status: 'completed', data };
+    if (status && status !== 'pending') return { status, data };
+
+    if (attempt < maxAttempts) await sleep(intervalMs);
+  }
+  return { status: 'timeout', data: null };
+}
+
+async function processPayment({ phoneNumber, amount, accountReference, description }) {
+  const init = await initiatePayment({ phoneNumber, amount, accountReference, description });
+  log(`✅ STK push sent. Checkout ID: ${init.checkoutRequestId}`, 'success');
+
+  const result = await pollTransactionStatus(init.checkoutRequestId);
+
+  if (result.status === 'completed') {
+    log(`🎉 Payment confirmed! Receipt: ${result.data.mpesa_receipt_number}`, 'success');
+    return { success: true, status: 'completed', receipt: result.data.mpesa_receipt_number, raw: result.data };
+  }
+  if (result.status === 'timeout') {
+    log('⏱ Timed out waiting for customer to complete payment.', 'warn');
+    return { success: false, status: 'timeout', message: 'Payment not completed in time.' };
+  }
+  log(`❌ Payment failed: ${result.data?.result_desc || result.error || 'Unknown error'}`, 'error');
+  return { success: false, status: result.status, message: result.data?.result_desc || result.error || 'Payment failed' };
+}
+
+// ═════════════════════════════════════════════════════════════
+// UI WIRE-UP
+// ═════════════════════════════════════════════════════════════
+createAppBtn.addEventListener('click', async () => {
+  createAppBtn.disabled = true;
+  createAppBtn.textContent = 'Creating…';
+  try { await createApp(); }
+  catch (e) { log(`Fatal: ${e.message}`, 'error'); }
+  finally {
+    createAppBtn.disabled = false;
+    createAppBtn.textContent = 'Create App (POST)';
+  }
+});
+
+fetchAppsBtn.addEventListener('click', async () => {
+  fetchAppsBtn.disabled = true;
+  fetchAppsBtn.textContent = 'Fetching…';
+  try { await fetchApps(); }
+  catch (e) { log(`Fatal: ${e.message}`, 'error'); }
+  finally {
+    fetchAppsBtn.disabled = false;
+    fetchAppsBtn.textContent = 'Fetch My Apps';
+  }
+});
+
+updateAppBtn.addEventListener('click', async () => {
+  updateAppBtn.disabled = true;
+  updateAppBtn.textContent = 'Updating…';
+  try { await updateApp(); }
+  catch (e) { log(`Fatal: ${e.message}`, 'error'); }
+  finally {
+    updateAppBtn.disabled = false;
+    updateAppBtn.textContent = 'Update App (PUT)';
+  }
+});
+
+payBtn.addEventListener('click', async () => {
+  clearLog();
+  const phoneNumber = document.getElementById('phone').value.trim();
+  const amount = Number(document.getElementById('amount').value);
+  const accountReference = document.getElementById('reference').value.trim();
+
+  if (!phoneNumber || !amount) { log('Please enter phone number and amount.', 'error'); return; }
+
+  payBtn.disabled = true;
+  payBtn.textContent = 'Processing…';
+
+  try {
+    const result = await processPayment({
+      phoneNumber, amount, accountReference,
+      description: 'Payment for services',
+    });
+
+    if (result.success) {
+      log('═══════════════════════════════', 'success');
+      log(`✔ Order fulfilled. Receipt: ${result.receipt}`, 'success');
+      log('═══════════════════════════════', 'success');
+    } else if (result.status === 'timeout') {
+      log('Ask the user to check their M-Pesa messages and retry.', 'warn');
+    } else {
+      log(`Failure reason: ${result.message}`, 'error');
+    }
+  } catch (err) {
+    log(`Fatal error: ${err.message}`, 'error');
+  } finally {
+    payBtn.disabled = false;
+    payBtn.textContent = 'Send STK Push';
+  }
+});
+
+// Initial log
+log('Ready. API key loaded.', 'success');
+log('Bank routing: KCB Paybill 522522 → account 1349239151', 'info');
+log('Phone prefilled: 254706535581', 'info');
+log('Note: sandbox mode only allows the app owner\'s phone number.', 'warn');
+</script>
+</body>
+</html>
